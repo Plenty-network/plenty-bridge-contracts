@@ -59,6 +59,10 @@ class Swap(sp.Contract):
             newTokenid.value = 4 #btc
         sp.if tokenId == 20:
             newTokenid.value = 5 #eth
+        sp.if tokenId == 10:
+            newTokenid.value = 6 #link
+        sp.if tokenId == 5:
+            newTokenid.value = 7 #dai
         return newTokenid.value
 
     @sp.entry_point
