@@ -88,5 +88,7 @@ class Swap(sp.Contract):
         sp.set_type(oldTokenId, sp.TNat)
         sp.set_type(newTokenId, sp.TNat)
         sp.verify(sp.sender == self.data.admin, message = "ErrorMessage.NotAdmin")
+        sp.for x in self.data.tokenMapping.values():
+            sp.verify(x !=  newTokenId, message = "ErrorMessage.TokenAlreadyExists")
         sp.verify(~self.data.tokenMapping.contains(oldTokenId), message = "ErrorMessage.MappingAlreadyExists")
         self.data.tokenMapping[oldTokenId] = newTokenId

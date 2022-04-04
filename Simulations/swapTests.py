@@ -67,7 +67,7 @@ if "templates" not in __name__:
             _oldTokenAddress = sp.address("KT1VoHhkb6wXnoPDvcpbnPFYGTcpJaPfRoEh"),
             _newTokenAddress = sp.address("KT1EZBn43coqL6xfT5xL6e49nhEPLp9B8m4n"),
             admin = admin.address,
-            _tokenMapping = {1: 0, 11: 1, 17: 2, 18: 3, 19: 4, 20: 5, 10: 6, 5: 7}
+            _tokenMapping = {1: 0, 17: 2, 18: 3, 19: 4, 20: 5, 10: 6, 5: 7}
         )
 
         scenario += c1
