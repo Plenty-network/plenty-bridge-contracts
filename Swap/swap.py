@@ -37,47 +37,56 @@ class ContractLibrary(sp.Contract):
         sp.transfer(arg, sp.mutez(0), transferHandle)
         
 class Swap(sp.Contract):
-    def __init__(self, _oldTokenAddress, _newTokenAddress, admin): 
+    def __init__(self, _oldTokenAddress, _newTokenAddress, admin, _tokenMapping = sp.map(l = {}, tkey = sp.TNat, tvalue = sp.TNat)): 
         self.init(
             admin = admin,
             oldTokenAddress = _oldTokenAddress, 
             newTokenAddress = _newTokenAddress,
+            tokenMapping = _tokenMapping,
             locked = False
         )
 
-    def getTokenId(self, tokenId):
-        newTokenid = sp.local('newTokenid', 100)
-        sp.if tokenId == 1:
-            newTokenid.value = 0 #busd
-        sp.if tokenId == 11:
-            newTokenid.value = 1 #matic
-        sp.if tokenId == 17:
-            newTokenid.value = 2 #usdc  
-        sp.if tokenId == 18:
-            newTokenid.value = 3 #usdt
-        sp.if tokenId == 19:
-            newTokenid.value = 4 #btc
-        sp.if tokenId == 20:
-            newTokenid.value = 5 #eth
-        sp.if tokenId == 10:
-            newTokenid.value = 6 #link
-        sp.if tokenId == 5:
-            newTokenid.value = 7 #dai
-        return newTokenid.value
+    # def getTokenId(self, tokenId):
+    #     newTokenid = sp.local('newTokenid', 100)
+    #     sp.if tokenId == 1:
+    #         newTokenid.value = 0 #busd
+    #     sp.if tokenId == 11:
+    #         newTokenid.value = 1 #matic
+    #     sp.if tokenId == 17:
+    #         newTokenid.value = 2 #usdc  
+    #     sp.if tokenId == 18:
+    #         newTokenid.value = 3 #usdt
+    #     sp.if tokenId == 19:
+    #         newTokenid.value = 4 #btc
+    #     sp.if tokenId == 20:
+    #         newTokenid.value = 5 #eth
+    #     sp.if tokenId == 10:
+    #         newTokenid.value = 6 #link
+    #     sp.if tokenId == 5:
+    #         newTokenid.value = 7 #dai
+    #     return newTokenid.value
 
     @sp.entry_point
     def swapTokens(self,params):
         sp.set_type(params, sp.TRecord(tokenId = sp.TNat, amount = sp.TNat))
-        newTokenId = sp.local('newTokenId', self.getTokenId(params.tokenId))
-        sp.verify(newTokenId.value != 100, "ErrorMessage.AssetNotSwapable")
+        sp.verify(self.data.tokenMapping.contains(params.tokenId), "ErrorMessage.AssetNotSwapable")
+        newTokenId = sp.local('newTokenId', self.data.tokenMapping[params.tokenId])
         ContractLibrary.TransferFATwoTokens(sp.sender, sp.self_address, params.amount, self.data.oldTokenAddress, params.tokenId)
         ContractLibrary.Mint(params.amount, sp.sender, self.data.newTokenAddress, newTokenId.value)
 
     @sp.entry_point
     def setAddress(self,params):
         sp.set_type(params, sp.TRecord(oldTokenAddress = sp.TAddress, newTokenAddress = sp.TAddress))
-        sp.verify(sp.sender == self.data.admin, message = "Not Admin")
-        sp.verify(~self.data.locked, message = "Already set")
+        sp.verify(sp.sender == self.data.admin, message = "ErrorMessage.NotAdmin")
+        sp.verify(~self.data.locked, message = "ErrorMessage.AlreadySet")
         self.data.locked = True
         self.data.oldTokenAddress = params.oldTokenAddress
         self.data.newTokenAddress = params.newTokenAddress
+    
+    @sp.entry_point
+    def addMapping(self, oldTokenId, newTokenId):
+        sp.set_type(oldTokenId, sp.TNat)
+        sp.set_type(newTokenId, sp.TNat)
+        sp.verify(sp.sender == self.data.admin, message = "ErrorMessage.NotAdmin")
+        sp.verify(~self.data.tokenMapping.contains(oldTokenId), message = "ErrorMessage.MappingAlreadyExists")
+        self.data.tokenMapping[oldTokenId] = newTokenId
