@@ -4,6 +4,27 @@ FA2_TOKEN = sp.io.import_script_from_url("file:./Tokens/FA2_multi_minter.py")
 
 SWAP = sp.io.import_script_from_url("file:./Swap/swap.py")
 
+class TestClass(sp.Contract): 
+    def __init__(self): 
+        self.init(
+            balance = sp.nat(0), 
+            balanceOf = sp.none,
+        )
+
+    @sp.entry_point
+    def getBalance(self, params, tokenAddress):
+        sp.set_type(params, sp.TRecord(owner = sp.TAddress,token_id = sp.TNat).layout(("owner", "token_id")))
+        sp.set_type(tokenAddress, sp.TAddress)
+        balance = sp.view("get_balance_view", tokenAddress, params,  t = sp.TNat).open_some("Invalid view")
+        self.data.balance = balance
+
+    @sp.entry_point
+    def getBalanceOf(self, params, tokenAddress):
+        sp.set_type(params, sp.TRecord(owner = sp.TAddress,token_id = sp.TNat).layout(("owner", "token_id")))
+        sp.set_type(tokenAddress, sp.TAddress)
+        balanceOf = sp.view("balance_of_view", tokenAddress, params,  t = sp.TRecord(request = sp.TRecord(owner = sp.TAddress,token_id = sp.TNat), balance = sp.TNat)).open_some("Invalid view")
+        self.data.balanceOf = sp.some(balanceOf)
+
 def global_parameter(env_var, default):
     try:
         if os.environ[env_var] == "true" :
@@ -136,3 +157,15 @@ if "templates" not in __name__:
 
         scenario.h1("Swapping old token for new one --> 0")
         c1.swapTokens(sp.record(tokenId = 0, amount = 50)).run(sender = bob)
+        
+        scenario.h1("Testing views")
+        c2 = TestClass()
+        scenario += c2
+
+        scenario.h1("Testing balance view")
+        c2.getBalance(sp.record(params = sp.record(owner = bob.address, token_id = 0), tokenAddress = oldToken.address))
+        scenario.verify(c2.data.balance == oldToken.data.ledger[sp.pair(bob.address, sp.nat(0))].balance)
+
+        scenario.h1("Testing balanceOf view")
+        c2.getBalanceOf(sp.record(params = sp.record(owner = bob.address, token_id = 0), tokenAddress = oldToken.address))
+        scenario.verify(c2.data.balanceOf == sp.some(sp.record(request = sp.record(owner = bob.address, token_id = 0), balance = oldToken.data.ledger[sp.pair(bob.address, sp.nat(0))].balance)))
