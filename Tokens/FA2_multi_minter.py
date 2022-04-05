@@ -514,7 +514,13 @@ class FA2_administrator(FA2_core):
         return sender == self.data.administrator
 
     def is_minter(self, sender):
-        return (sender == self.data.minter1) | (sender == self.data.minter2)
+        returnVal = sp.local("returnVal", False)
+        sp.if sender == self.data.minter1:
+            returnVal.value =  ~self.data.isMinter1Locked
+        sp.else:
+            sp.if sender == self.data.minter2:
+                returnVal.value = ~self.data.isMinter2Locked  
+        return returnVal.value
 
     @sp.entry_point
     def set_administrator(self, params):
@@ -530,6 +536,27 @@ class FA2_administrator(FA2_core):
     def set_minter2(self, params):
         sp.verify(sp.sender == self.data.minter2, message = self.error_message.not_minter())
         self.data.minter2 = params
+
+    @sp.entry_point
+    def lockMinter1(self):
+        sp.verify(self.is_administrator(sp.sender), message = self.error_message.not_admin())
+        self.data.isMinter1Locked = True
+
+    @sp.entry_point
+    def lockMinter2(self):
+        sp.verify(self.is_administrator(sp.sender), message = self.error_message.not_admin())
+        self.data.isMinter2Locked = True
+
+    @sp.entry_point
+    def unlockMinter1(self):
+        sp.verify(self.is_administrator(sp.sender), message = self.error_message.not_admin())
+        self.data.isMinter1Locked = False
+
+    @sp.entry_point
+    def unlockMinter2(self):
+        sp.verify(self.is_administrator(sp.sender), message = self.error_message.not_admin())
+        self.data.isMinter2Locked = False
+    
 
 class FA2_pause(FA2_core):
     def is_paused(self):
@@ -580,7 +607,6 @@ class FA2_token_metadata(FA2_core):
         def token_metadata(self, tok):
             """
             Return the token-metadata URI for the given token.
-
             For a reference implementation, dynamic-views seem to be the
             most flexible choice.
             """
@@ -647,14 +673,12 @@ class FA2(FA2_change_metadata, FA2_token_metadata, FA2_mint, FA2_administrator, 
         if config.assume_consecutive_token_ids:
             self.all_tokens.doc = """
             This view is specified (but optional) in the standard.
-
             This contract is built with assume_consecutive_token_ids =
             True, so we return a list constructed from the number of tokens.
             """
         else:
             self.all_tokens.doc = """
             This view is specified (but optional) in the standard.
-
             This contract is built with assume_consecutive_token_ids =
             False, so we convert the set of tokens from the storage to a list
             to fit the expected type of TZIP-16.
@@ -703,4 +727,4 @@ class FA2(FA2_change_metadata, FA2_token_metadata, FA2_mint, FA2_administrator, 
             }
         }
         self.init_metadata("metadata_base", metadata_base)
-        FA2_core.__init__(self, config, metadata, paused = False, administrator = admin, minter1 = minter1, minter2 = minter2)
+        FA2_core.__init__(self, config, metadata, paused = False, administrator = admin, minter1 = minter1, minter2 = minter2, isMinter1Locked = False, isMinter2Locked = False)

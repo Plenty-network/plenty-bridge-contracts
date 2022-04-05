@@ -155,8 +155,29 @@ if "templates" not in __name__:
         scenario.h1("Adding mapping")
         c1.addMapping(sp.record(oldTokenId = 0, newTokenId = 1)).run(sender = admin)
 
+        scenario.h1("Locking Minter 1")
+        newToken.lockMinter1().run(sender = admin)
+
+        scenario.h1("Trying to mint from locked minter")
+        newToken.mint(address = admin.address,
+                            amount = 0,
+                            metadata = newTok2_md,
+                            token_id = 1).run(sender = minter1, valid = False)
+
+        scenario.h1("Locking Minter 2")
+        newToken.lockMinter2().run(sender = admin)
+
+        scenario.h1("Swapping old token for new one --> 0, when minter is locked")
+        c1.swapTokens(sp.record(tokenId = 0, amount = 50)).run(sender = bob, valid = False)
+
+        scenario.h1("unLocking Minter 2")
+        newToken.unlockMinter2().run(sender = admin)
+
         scenario.h1("Swapping old token for new one --> 0")
         c1.swapTokens(sp.record(tokenId = 0, amount = 50)).run(sender = bob)
+
+        scenario.h1("unLocking Minter 1")
+        newToken.unlockMinter1().run(sender = admin)
         
         scenario.h1("Testing views")
         c2 = TestClass()
