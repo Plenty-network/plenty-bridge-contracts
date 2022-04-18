@@ -26,16 +26,19 @@ class ContractLibrary(sp.Contract):
 
     def Mint(amount, reciever, tokenAddress,id):
         
-        arg = sp.record(address = reciever, amount = amount, token_id = id, metadata = sp.map(l={}))
+        arg = [sp.record(owner = reciever, amount = amount, token_id = id)]
         
 
         transferHandle = sp.contract(
-            sp.TRecord(address=sp.TAddress, amount = sp.TNat, token_id = sp.TNat, metadata = sp.TMap(sp.TString, sp.TBytes)), 
+            sp.TList(sp.TRecord(owner=sp.TAddress, amount = sp.TNat, token_id = sp.TNat)), 
             tokenAddress,
-            entry_point='mint').open_some()
+            entry_point='mint_tokens').open_some()
 
         sp.transfer(arg, sp.mutez(0), transferHandle)
-        
+    
+
+
+
 class Swap(sp.Contract):
     def __init__(self, _oldTokenAddress, _newTokenAddress, admin, _tokenMapping = sp.map(l = {}, tkey = sp.TNat, tvalue = sp.TNat)): 
         self.init(

@@ -45,7 +45,7 @@ if "templates" not in __name__:
         minter1 = sp.test_account("Minter1")
         minter2 = sp.test_account("Minter2")
         
-        config = FA2_TOKEN.FA2_config(
+        config = FA2_config(
                 debug_mode = global_parameter("debug_mode", False),
                 single_asset = global_parameter("single_asset", False),
                 non_fungible = global_parameter("non_fungible", False),
@@ -63,7 +63,7 @@ if "templates" not in __name__:
         scenario = sp.test_scenario()
 
         scenario.h1("Initializing swap")
-        c1 = SWAP.Swap(
+        c1 = Swap(
             _oldTokenAddress = sp.address("KT1VoHhkb6wXnoPDvcpbnPFYGTcpJaPfRoEh"),
             _newTokenAddress = sp.address("KT1EZBn43coqL6xfT5xL6e49nhEPLp9B8m4n"),
             admin = admin.address,
@@ -73,7 +73,7 @@ if "templates" not in __name__:
         scenario += c1
 
         scenario.h1("Creating old token")
-        oldToken = FA2_TOKEN.FA2(config = config,
+        oldToken = FA2(config = config,
                  metadata = sp.utils.metadata_of_url("https://example.com"),
                  admin = admin.address,
                  minter1 = minter1.address,
@@ -81,7 +81,7 @@ if "templates" not in __name__:
         scenario += oldToken
 
         scenario.h1("Creating new token")
-        newToken = FA2_TOKEN.FA2(config = config,
+        newToken = FA2(config = config,
                  metadata = sp.utils.metadata_of_url("https://example.com"),
                  admin = admin.address,
                  minter1 = minter1.address,
@@ -92,44 +92,46 @@ if "templates" not in __name__:
         c1.setAddress(sp.record(oldTokenAddress = oldToken.address, newTokenAddress = newToken.address)).run(sender = admin)
 
         scenario.h1("Minting/Creating old token id = 0")
-        oldTok1_md = FA2_TOKEN.FA2.make_metadata(
+        oldTok1_md = FA2.make_metadata(
             name = "wAave",
             decimals = 18,
             symbol= "wAave")
-        oldToken.mint(address = bob.address,
-                            amount = 100,
-                            metadata = oldTok1_md,
-                            token_id = 0).run(sender = minter1)
+        oldToken.create_token(token_info = oldTok1_md,
+                            token_id = 0).run(sender = admin)
+        
+        oldToken.mint_tokens([sp.record(owner = bob.address,
+                    amount = 50,
+                    token_id = 0)]).run(sender = minter1)
 
         scenario.h1("Minting/Creating old token id = 1")
-        oldTok2_md = FA2_TOKEN.FA2.make_metadata(
+        oldTok2_md = FA2.make_metadata(
             name = "wUSDT",
             decimals = 18,
             symbol= "wUSDT")
-        oldToken.mint(address = bob.address,
-                            amount = 100,
-                            metadata = oldTok2_md,
-                            token_id = 1).run(sender = minter1)
+        oldToken.create_token(token_info = oldTok2_md,
+                            token_id = 1).run(sender = admin)
+        
+        oldToken.mint_tokens([sp.record(owner = bob.address,
+                    amount = 50,
+                    token_id = 1)]).run(sender = minter1)
 
         scenario.h1("Minting/Creating new token id = 0")
-        newTok1_md = FA2_TOKEN.FA2.make_metadata(
+        newTok1_md = FA2.make_metadata(
             name = "USDT.e",
             decimals = 6,
             symbol= "USDT.e")
-        newToken.mint(address = admin.address,
-                            amount = 0,
-                            metadata = newTok1_md,
-                            token_id = 0).run(sender = minter1)
+        newToken.create_token(
+                            token_info = newTok1_md,
+                            token_id = 0).run(sender = admin)
 
         scenario.h1("Minting/Creating new token id = 1")
-        newTok2_md = FA2_TOKEN.FA2.make_metadata(
+        newTok2_md = FA2.make_metadata(
             name = "UAave.e",
             decimals = 6,
             symbol= "UAave.e")
-        newToken.mint(address = admin.address,
-                            amount = 0,
-                            metadata = newTok2_md,
-                            token_id = 1).run(sender = minter1)
+        newToken.create_token(
+                            token_info = newTok2_md,
+                            token_id = 1).run(sender = admin)
 
         scenario.h1("Setting Swap as opreator for bob's old token --> 0")
         oldToken.update_operators([
@@ -148,21 +150,21 @@ if "templates" not in __name__:
                     token_id = 1
                 ))
             ]).run(sender = bob, valid = True)
+        
 
         scenario.h1("Swapping old token for new one")
         c1.swapTokens(sp.record(tokenId = 1, amount = 50)).run(sender = bob)
 
         scenario.h1("Adding mapping")
         c1.addMapping(sp.record(oldTokenId = 0, newTokenId = 1)).run(sender = admin)
-
+        
         scenario.h1("Locking Minter 1")
         newToken.lockMinter1().run(sender = admin)
 
         scenario.h1("Trying to mint from locked minter")
-        newToken.mint(address = admin.address,
+        newToken.mint_tokens([sp.record(owner = admin.address,
                             amount = 0,
-                            metadata = newTok2_md,
-                            token_id = 1).run(sender = minter1, valid = False)
+                            token_id = 1)]).run(sender = minter1, valid = False)
 
         scenario.h1("Locking Minter 2")
         newToken.lockMinter2().run(sender = admin)
@@ -190,3 +192,8 @@ if "templates" not in __name__:
         scenario.h1("Testing balanceOf view")
         c2.getBalanceOf(sp.record(params = sp.record(owner = bob.address, token_id = 0), tokenAddress = oldToken.address))
         scenario.verify(c2.data.balanceOf == sp.some(sp.record(request = sp.record(owner = bob.address, token_id = 0), balance = oldToken.data.ledger[sp.pair(bob.address, sp.nat(0))].balance)))
+
+        scenario.h1("Burning")
+        oldToken.burn_tokens([sp.record(owner = c1.address,
+                    amount = 20,
+                    token_id = 1)]).run(sender = minter1)
