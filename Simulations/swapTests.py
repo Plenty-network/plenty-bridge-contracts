@@ -99,9 +99,9 @@ if "templates" not in __name__:
         oldToken.create_token(token_info = oldTok1_md,
                             token_id = 0).run(sender = admin)
         
-        oldToken.mint_tokens([sp.record(owner = bob.address,
+        oldToken.tokens(sp.variant("mint_tokens",[sp.record(owner = bob.address,
                     amount = 50,
-                    token_id = 0)]).run(sender = minter1)
+                    token_id = 0)])).run(sender = minter1)
 
         scenario.h1("Minting/Creating old token id = 1")
         oldTok2_md = FA2_TOKEN.FA2.make_metadata(
@@ -111,9 +111,9 @@ if "templates" not in __name__:
         oldToken.create_token(token_info = oldTok2_md,
                             token_id = 1).run(sender = admin)
         
-        oldToken.mint_tokens([sp.record(owner = bob.address,
+        oldToken.tokens(sp.variant("mint_tokens",[sp.record(owner = bob.address,
                     amount = 50,
-                    token_id = 1)]).run(sender = minter1)
+                    token_id = 1)])).run(sender = minter1)
 
         scenario.h1("Minting/Creating new token id = 0")
         newTok1_md = FA2_TOKEN.FA2.make_metadata(
@@ -162,9 +162,9 @@ if "templates" not in __name__:
         newToken.lockMinter1().run(sender = admin)
 
         scenario.h1("Trying to mint from locked minter")
-        newToken.mint_tokens([sp.record(owner = admin.address,
+        newToken.tokens(sp.variant("mint_tokens",[sp.record(owner = admin.address,
                             amount = 0,
-                            token_id = 1)]).run(sender = minter1, valid = False)
+                            token_id = 1)])).run(sender = minter1, valid = False)
 
         scenario.h1("Locking Minter 2")
         newToken.lockMinter2().run(sender = admin)
@@ -194,6 +194,6 @@ if "templates" not in __name__:
         scenario.verify(c2.data.balanceOf == sp.some(sp.record(request = sp.record(owner = bob.address, token_id = 0), balance = oldToken.data.ledger[sp.pair(bob.address, sp.nat(0))].balance)))
 
         scenario.h1("Burning")
-        oldToken.burn_tokens([sp.record(owner = c1.address,
+        oldToken.tokens(sp.variant("burn_tokens",[sp.record(owner = c1.address,
                     amount = 20,
-                    token_id = 1)]).run(sender = minter1)
+                    token_id = 1)])).run(sender = minter1)

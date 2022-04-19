@@ -26,13 +26,16 @@ class ContractLibrary(sp.Contract):
 
     def Mint(amount, reciever, tokenAddress,id):
         
-        arg = [sp.record(owner = reciever, amount = amount, token_id = id)]
+        arg = sp.variant('mint_tokens',[sp.record(owner = reciever, amount = amount, token_id = id)])
         
 
         transferHandle = sp.contract(
-            sp.TList(sp.TRecord(owner=sp.TAddress, amount = sp.TNat, token_id = sp.TNat).layout(("owner", ("token_id", "amount")))), 
+            sp.TVariant(
+                burn_tokens = sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount")))),
+                mint_tokens = sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount"))))
+            ), 
             tokenAddress,
-            entry_point='mint_tokens').open_some()
+            entry_point='tokens').open_some()
 
         sp.transfer(arg, sp.mutez(0), transferHandle)
     

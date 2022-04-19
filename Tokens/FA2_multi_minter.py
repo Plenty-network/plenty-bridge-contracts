@@ -574,51 +574,54 @@ class FA2_change_metadata(FA2_core):
         self.data.metadata[k] = v
 
 class FA2_mint(FA2_core):
-    @sp.entry_point
-    def mint_tokens(self, params):
-        sp.set_type(params,sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount")))))
-        sp.verify(self.is_minter(sp.sender), message = self.error_message.not_minter())
-        # We don't check for pauseness because we're the admin.
-        sp.for mint_tokens_item in params:
-            sp.verify(self.token_id_set.contains(self.data.all_tokens, mint_tokens_item.token_id), message = "Token does not exists")
-            if self.config.single_asset:
-                sp.verify(mint_tokens_item.token_id == 0, message = "single-asset: token-id <> 0")
-            if self.config.non_fungible:
-                sp.verify(mint_tokens_item.amount == 1, message = "NFT-asset: amount <> 1")
-                sp.verify(
-                    ~ self.token_id_set.contains(self.data.all_tokens, mint_tokens_item.token_id),
-                    message = "NFT-asset: cannot mint twice same token"
-                )
-            user = self.ledger_key.make(mint_tokens_item.owner, mint_tokens_item.token_id)
-            sp.if self.data.ledger.contains(user):
-                self.data.ledger[user].balance += mint_tokens_item.amount
-            sp.else:
-                self.data.ledger[user] = Ledger_value.make(mint_tokens_item.amount)
-
-            if self.config.store_total_supply:
-                self.data.total_supply[mint_tokens_item.token_id] = mint_tokens_item.amount + self.data.total_supply.get(mint_tokens_item.token_id, default_value = 0)
 
     @sp.entry_point
-    def burn_tokens(self, params):
-        sp.set_type(params,sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount")))))
+    def tokens(self, params):
+        sp.set_type(params,
+            sp.TVariant(
+                burn_tokens = sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount")))),
+                mint_tokens = sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount"))))
+            )
+        )
         sp.verify(self.is_minter(sp.sender), message = self.error_message.not_minter())
-        # We don't check for pauseness because we're the admin.
-        sp.for burn_tokens_item in params:
-            sp.verify(self.token_id_set.contains(self.data.all_tokens, burn_tokens_item.token_id), message = "Token does not exists")
-            if self.config.single_asset:
-                sp.verify(burn_tokens_item.token_id == 0, message = "single-asset: token-id <> 0")
-            if self.config.non_fungible:
-                sp.verify(burn_tokens_item.amount == 1, message = "NFT-asset: amount <> 1")
-                sp.verify(
-                    self.token_id_set.contains(self.data.all_tokens, burn_tokens_item.token_id),
-                    message = "NFT-asset: cannot burn"
-                )
-            user = self.ledger_key.make(burn_tokens_item.owner, burn_tokens_item.token_id)
-            sp.verify(self.data.ledger.contains(user), message = "Cannot burn more than balance")
-            sp.verify(burn_tokens_item.amount <= self.data.ledger[user].balance, message = "Cannot burn more than balance")
-            self.data.ledger[user].balance = abs(self.data.ledger[user].balance - burn_tokens_item.amount)
-            if self.config.store_total_supply:
-                self.data.total_supply[burn_tokens_item.token_id] = abs(burn_tokens_item.amount - self.data.total_supply.get(mint_tokens_item.token_id, default_value = 0))
+        
+        with params.match_cases() as arg:
+            with arg.match("mint_tokens") as upd:
+                sp.for mint_tokens_item in upd:
+                    sp.verify(self.token_id_set.contains(self.data.all_tokens, mint_tokens_item.token_id), message = "Token does not exists")
+                    if self.config.single_asset:
+                        sp.verify(mint_tokens_item.token_id == 0, message = "single-asset: token-id <> 0")
+                    if self.config.non_fungible:
+                        sp.verify(mint_tokens_item.amount == 1, message = "NFT-asset: amount <> 1")
+                        sp.verify(
+                            ~ self.token_id_set.contains(self.data.all_tokens, mint_tokens_item.token_id),
+                            message = "NFT-asset: cannot mint twice same token"
+                        )
+                    user = self.ledger_key.make(mint_tokens_item.owner, mint_tokens_item.token_id)
+                    sp.if self.data.ledger.contains(user):
+                        self.data.ledger[user].balance += mint_tokens_item.amount
+                    sp.else:
+                        self.data.ledger[user] = Ledger_value.make(mint_tokens_item.amount)
+                    if self.config.store_total_supply:
+                        self.data.total_supply[mint_tokens_item.token_id] = mint_tokens_item.amount + self.data.total_supply.get(mint_tokens_item.token_id, default_value = 0)
+            with arg.match("burn_tokens") as upd:
+                sp.for burn_tokens_item in upd:
+                    sp.verify(self.token_id_set.contains(self.data.all_tokens, burn_tokens_item.token_id), message = "Token does not exists")
+                    if self.config.single_asset:
+                        sp.verify(burn_tokens_item.token_id == 0, message = "single-asset: token-id <> 0")
+                    if self.config.non_fungible:
+                        sp.verify(burn_tokens_item.amount == 1, message = "NFT-asset: amount <> 1")
+                        sp.verify(
+                            self.token_id_set.contains(self.data.all_tokens, burn_tokens_item.token_id),
+                            message = "NFT-asset: cannot burn"
+                        )
+                    user = self.ledger_key.make(burn_tokens_item.owner, burn_tokens_item.token_id)
+                    sp.verify(self.data.ledger.contains(user), message = "Cannot burn more than balance")
+                    sp.verify(burn_tokens_item.amount <= self.data.ledger[user].balance, message = "Cannot burn more than balance")
+                    self.data.ledger[user].balance = abs(self.data.ledger[user].balance - burn_tokens_item.amount)
+                    if self.config.store_total_supply:
+                        self.data.total_supply[burn_tokens_item.token_id] = abs(burn_tokens_item.amount - self.data.total_supply.get(mint_tokens_item.token_id, default_value = 0))
+
 
     @sp.entry_point
     def create_token(self, params):
