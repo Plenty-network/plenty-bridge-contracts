@@ -30,7 +30,7 @@ class ContractLibrary(sp.Contract):
         
 
         transferHandle = sp.contract(
-            sp.TList(sp.TRecord(owner=sp.TAddress, amount = sp.TNat, token_id = sp.TNat)), 
+            sp.TList(sp.TRecord(owner=sp.TAddress, amount = sp.TNat, token_id = sp.TNat).layout(("owner", ("token_id", "amount")))), 
             tokenAddress,
             entry_point='mint_tokens').open_some()
 

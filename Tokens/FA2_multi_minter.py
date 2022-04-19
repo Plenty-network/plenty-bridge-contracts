@@ -576,7 +576,7 @@ class FA2_change_metadata(FA2_core):
 class FA2_mint(FA2_core):
     @sp.entry_point
     def mint_tokens(self, params):
-        sp.set_type(params,sp.TList(sp.TRecord(amount = sp.TNat, owner = sp.TAddress, token_id = sp.TNat)))
+        sp.set_type(params,sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount")))))
         sp.verify(self.is_minter(sp.sender), message = self.error_message.not_minter())
         # We don't check for pauseness because we're the admin.
         sp.for mint_tokens_item in params:
@@ -600,7 +600,7 @@ class FA2_mint(FA2_core):
 
     @sp.entry_point
     def burn_tokens(self, params):
-        sp.set_type(params,sp.TList(sp.TRecord(amount = sp.TNat, owner = sp.TAddress, token_id = sp.TNat)))
+        sp.set_type(params,sp.TList(sp.TRecord(owner = sp.TAddress,token_id = sp.TNat, amount = sp.TNat).layout(("owner", ("token_id", "amount")))))
         sp.verify(self.is_minter(sp.sender), message = self.error_message.not_minter())
         # We don't check for pauseness because we're the admin.
         sp.for burn_tokens_item in params:
