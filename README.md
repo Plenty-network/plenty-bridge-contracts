@@ -7,5 +7,8 @@ Smartpy IDE Link: https://smartpy.io/ide?cid=QmcRXH3WLYmsUNDB6DZ5woMU6dM7SwafYDr
 
 Contracts can be directly deployed from smartpy online IDE.
 
+## Plenty Bridge Contracts on Tezos Side : https://github.com/Plenty-DeFi/Plenty-bridge-contracts-tezos
+## Plenty Bridge Contracts on Ethereum Side : https://github.com/Plenty-DeFi/Plenty-bridge-contracts-Ethereum
+
 ## Disclaimer
 This repository is open-sourced, and is under active improvements based on suggestions and bug-reports. Users are requested to double check the transaction details on their wallet's confirmation page. The authors take no responsibility for the loss of digital assets.
